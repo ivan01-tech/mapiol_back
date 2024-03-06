@@ -72,7 +72,6 @@ const start = async () => {
     resave: true,
     store: mongoStore,
     saveUninitialized: true,
-    // store:
     cookie: {
       maxAge: 1000 * 60 * 60 * 10,
       secure: isProduction,
