@@ -5,14 +5,65 @@
 /* eslint-disable camelcase */
 
 import { Request, Response } from 'express';
+import { validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
 import mongoose, { Error } from 'mongoose';
 
-import User from '../models/userModel.js';
+import { ErrorHandlerClass } from '../middleware/errorMiddleware.js';
 import { MyCustomError } from '../utils/CustomError.js';
 import { SALT_HASH } from '../constants.js';
+import User from '../models/userModel.js';
 
 export class UserController {
+  static create = ErrorHandlerClass.handleError(async (req: Request, res: Response) => {
+    // Vérifiez les erreurs de validation
+    const errors = validationResult(req);
+    // console.log('existing newUser : ', errors);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ status: 'error', errors: errors.array() });
+    }
+
+    // Extraire les données du corps de la requête
+    const { nom, adresse, email, login, password, telephone, sexe } = req.body;
+
+    // Vérifiez si l'utilisateur avec cet e-mail existe déjà
+    const existingUser = await User.findOne({ email });
+
+    console.log('existing : ', existingUser);
+
+    if (existingUser) {
+      return res.status(400).json({ errors: [{ msg: 'Cet email est déjà utilisé' }] });
+    }
+
+    const hashPassword = await bcrypt.hash(password, SALT_HASH);
+
+    // Créez un nouvel utilisateur
+    const newUser = new User({
+      nom,
+      adresse,
+      email,
+      login,
+      password: hashPassword,
+      telephone,
+      sexe,
+    });
+
+    newUser.save();
+
+    delete newUser.password;
+
+    // Connectez l'utilisateur après la création
+    req.session.userId = newUser._id;
+    req.session.user = newUser;
+    // Réponse réussie
+    return res.status(201).json({
+      data: newUser.toJSON(),
+      status: 'success',
+      message: 'Compte créé avec succès',
+    });
+  });
+
   /**
    * @desc create a new user
    * @route POST /users
@@ -21,8 +72,8 @@ export class UserController {
    * @param res
    * @returns
    */
-  static async createUser(req: Request, res: Response) {
-    const { email, password, nom, adresse, login, sexe, telephone, typeUser_id, statut } = req.body;
+  static createUser = ErrorHandlerClass.handleError(async (req: Request, res: Response) => {
+    const { email, password, nom, adresse, login, sexe, telephone } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ status: 'error', message: 'All fields must be set' });
@@ -51,7 +102,6 @@ export class UserController {
     if (newUser) {
       const data = {
         email,
-
         _id: newUser._id,
         roles: newUser.roles,
       };
@@ -64,7 +114,7 @@ export class UserController {
       });
     }
     return res.status(400).json({ message: 'Invalid user data received !', data: newUser });
-  }
+  });
 
   /**
    * @desc create a new user and login it directly from the agent
@@ -243,22 +293,17 @@ export class UserController {
    * @returns
    */
   static async deleteUser(req: Request, res: Response) {
-    try {
-      const { userId } = req.body;
+    const { userId } = req.body;
 
-      if (!mongoose.isValidObjectId(userId)) {
-        return res.status(400).json({ status: 'error', message: 'Invalid user ID.' });
-      }
-      const users = await User.findById(userId);
-
-      if (!users) return res.status(404).json({ status: 'error', message: 'No users found !' });
-      // TODO
-      await users.deleteOne();
-      return res.json({ status: 'success', message: 'Successfully Deleted !' });
-    } catch (error) {
-      console.log('error : ', error);
-      return res.status(500).json({ status: 'error', message: 'Somethinfg went wrong !' });
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ status: 'error', message: 'Invalid user ID.' });
     }
+    const users = await User.findById(userId);
+
+    if (!users) return res.status(404).json({ status: 'error', message: 'No users found !' });
+    // TODO
+    await users.deleteOne();
+    return res.json({ status: 'success', message: 'Successfully Deleted !' });
   }
 
   /**

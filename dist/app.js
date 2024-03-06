@@ -9,7 +9,6 @@ import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import { Database, Resource } from '@adminjs/mongoose';
 import MongoStore from 'connect-mongo';
-import { configurePassport } from './config/passport.js';
 import dbConnection from './config/dbConnection.js';
 import { logger } from './middleware/logger.js';
 import { corsOptions } from './config/corsCongif.js';
@@ -33,7 +32,6 @@ const mongoStore = MongoStore.create({
 const start = async () => {
     app.set('trust proxy', true);
     const mongoDB = await dbConnection();
-    configurePassport();
     mongoose.connection.once('open', () => {
         console.log('Connected to MongoDB');
     });

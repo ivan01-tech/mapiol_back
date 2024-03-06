@@ -4,6 +4,7 @@ import { config } from 'dotenv';
 import bcrypt from 'bcrypt';
 
 import User, { UserType } from '../models/userModel.js';
+import { ErrorHandlerClass } from '../middleware/errorMiddleware.js';
 
 config();
 export class AuthenticationController {
@@ -15,7 +16,7 @@ export class AuthenticationController {
    * @param res
    * @returns
    */
-  static async login(req: Request, res: Response) {
+  static login = ErrorHandlerClass.handleError(async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -49,22 +50,13 @@ export class AuthenticationController {
       data: checkUser,
       message: 'successfully logged in',
     });
-  }
+  });
 
-  static async getUserStatus(req: Request, res: Response) {
+  static getUserStatus = ErrorHandlerClass.handleError(async (req: Request, res: Response) => {
     const { user: userSession, userId } = req.session;
-    const { user } = req;
 
-    console.log('user with get status : ', req.user);
-
-    if (req.user) {
-      return res.json({
-        status: 'success',
-        message: 'Logged in',
-        data: user,
-      });
-    }
     console.log('user service : ', userId, userSession);
+
     if (!userId && !userSession) {
       return res.status(403).json({ message: 'Not logged in', status: 'error' });
     }
@@ -76,7 +68,7 @@ export class AuthenticationController {
       message: 'Logged in',
       data: userSession,
     });
-  }
+  });
 
   /**
    * @desc logout a user w

@@ -14,7 +14,7 @@ import mongoose from 'mongoose';
 import { Database, Resource } from '@adminjs/mongoose';
 import MongoStore from 'connect-mongo';
 
-import { configurePassport } from './config/passport.js';
+// import { configurePassport } from './config/passport.js';
 import { deleteAllDocuments } from './utils/deleteMany.js';
 import dbConnection from './config/dbConnection.js';
 import { logger } from './middleware/logger.js';
@@ -24,6 +24,7 @@ import errorHandlerMiddleware from './middleware/errorMiddleware.js';
 import authRoute from './routes/authRoute.js';
 import usersRoute from './routes/userRoute.js';
 import rootRouter from './routes/root.js';
+import UserModel from './models/userModel.js';
 
 dotenv.config();
 
@@ -52,8 +53,10 @@ const start = async () => {
 
   // Initialisation de la base de données MongoDB
   const mongoDB = await dbConnection();
+  // deleteAllDocuments(UserModel);
+  // await UserModel.collection.dropIndex('slug_1');
 
-  configurePassport();
+  // configurePassport();
 
   // Initialisation de la connexion MongoDB
   mongoose.connection.once('open', () => {
@@ -72,9 +75,7 @@ const start = async () => {
     // store:
     cookie: {
       maxAge: 1000 * 60 * 60 * 10,
-      // TODO : change
       secure: isProduction,
-      // domain: isProduction ? 'onrender.com' : 'localhost',
       sameSite: isProduction ? 'none' : 'lax',
     },
     name: 'mapiol_cookie',
